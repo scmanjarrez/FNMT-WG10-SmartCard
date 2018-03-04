@@ -1,6 +1,7 @@
 from math import ceil
 from Crypto.Cipher import DES
 from Crypto.Cipher import DES3
+from sys import argv
 
 
 iv = "0000000000000000"
@@ -8,29 +9,11 @@ mk = None
 sk = None
 
 def ByteToHex( byteStr ):
-    """
-    Convert a byte string to it's hex string representation e.g. for output.
-    """
-    # Uses list comprehension which is a fractionally faster implementation than
-    # the alternative, more readable, implementation below
-    #
-    #    hex = []
-    #    for aChar in byteStr:
-    #        hex.append( "%02X " % ord( aChar ) )
-    #
-    #    return ''.join( hex ).strip()
+    # https://code.activestate.com/recipes/510399-byte-to-hex-and-hex-to-byte-string-conversion/
     return ''.join( [ "%02X" % ord( x ) for x in byteStr ] ).strip()
 
 def HexToByte( hexStr ):
-    """
-    Convert a string hex byte values into a byte string. The Hex Byte values may
-    or may not be space separated.
-    """
-    # The list comprehension implementation is fractionally slower in this case
-    #
-    #    hexStr = ''.join( hexStr.split(" ") )
-    #    return ''.join( ["%c" % chr( int ( hexStr[i:i+2],16 ) ) \
-    #                                   for i in range(0, len( hexStr ), 2) ] )
+    # https://code.activestate.com/recipes/510399-byte-to-hex-and-hex-to-byte-string-conversion/
     byte = []
     hexStr = ''.join( hexStr.split(" ") )
     for i in range(0, len(hexStr), 2):
@@ -59,10 +42,14 @@ def calcula_ultimos_3bytes(bloques, sk):
     ultimo_bloque = HexToByte(iv) # 00..00
     sk1 = sk[:16] # sk es formato FFAA...00
     for i, bloq in enumerate(bloques):
+        print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
+        print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
         if i == len(bloques)-1:
             ultimo_bloque = calcula_3des(sk, calcula_xor(bloq, ultimo_bloque))
+            print("3Des: " + ByteToHex(ultimo_bloque))
         else:
             ultimo_bloque = calcula_des(sk1, calcula_xor(bloq, ultimo_bloque))
+            print("Des: " + ByteToHex(ultimo_bloque))
     return ultimo_bloque
 
 def calcula_bloques_cifrados(bloques, sk):
@@ -70,9 +57,13 @@ def calcula_bloques_cifrados(bloques, sk):
     # bloq esta en hexadecimal string, FF0A..
     ultimo_bloque = HexToByte(iv) # 00..00
     bloq_cifrados = []
-    for bloq in bloques:
+    for i, bloq in enumerate(bloques):
+        print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
+        print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
         ultimo_bloque = calcula_3des(sk, calcula_xor(bloq, ultimo_bloque))
+        print("CB" + str(i) + ": " + ByteToHex(ultimo_bloque))
         bloq_cifrados.append(ByteToHex(ultimo_bloque))
+    print("Cifrado: " + "".join(bloq_cifrados))
     return "".join(bloq_cifrados)
 
 def verifica_padding(data):
@@ -90,9 +81,13 @@ def calcula_clave_sesion(mk, gr):
     mk2mk1 = mk[16:]+mk[:16]
     nt = gr[:4] # 00NT XX..CRN
     nt_data = "000000" + nt + "000000"
+    print("nt_data: " + nt_data)
     sk1 = calcula_3des(mk, HexToByte(nt_data))
+    print("sk1: " + ByteToHex(sk1))
     sk2 = calcula_3des(mk2mk1, HexToByte(nt_data))
+    print("sk2: " + ByteToHex(sk2))
     sk = ByteToHex(sk1 + sk2)
+    print("sk: " + sk)
     return sk
 
 
@@ -163,19 +158,21 @@ def leer_datos_uso_3():
         else:
             print("Usando SK de memoria")
 
-    admkey = raw_input("Introduzca clave administrativa: ")
-    assert len(HexToByte(admkey)) == 16, "Clave administrativa no tiene 16B"
-    print("ADMKEY = " + " ".join(split_hex(admkey, 2)))
+    datos = raw_input("Introduzca datos a cifrar: ")
+    assert len(HexToByte(datos)) % 2 == 0, "Hexadecimal erroneo"
+    print("DATOS = " + " ".join(split_hex(datos, 2)))
 
-    return sk, admkey
+    return sk, datos
 
 def main():
     print(""""Indique con un numero la actividad a realizar:
 
-    *1: Generar clave de sesion, recibe getResponse del internal authenticate y clave maestra
-    *2: Calcula ultimos 3B, recibe clave de sesion si no se ha hecho previamente el paso 1
-    *3: Calcula el cifrado de la clave administrativa, recibe clave de sesion si no se ha hecho previamente el paso 1
-    *4: Terminar programa""")
+    *1: Generar clave de sesion, recibe getResponse del internal authenticate y clave administrativa.
+    *2: Calcular ultimo bloque, recibe clave de sesion si no se ha calculado previamente en el paso 1,
+        las instrucciones (L+3) y los datos a enviar.
+    *3: Cifrar datos, recibe clave de sesion si no se ha calculado previamente en el paso 1
+        y los datos a cifrar.
+    *4: Terminar programa.""")
 
     global sk
 
@@ -214,12 +211,14 @@ def main():
                 bloques = split_hex(to_split, bloq_size)
                 bloques = [verifica_padding(bloq) for bloq in bloques]
 
-            print("Ultimos 3B: " + ByteToHex(calcula_ultimos_3bytes(bloques, sk))[10:])
+            print("Ultimo Bloque: " + ByteToHex(calcula_ultimos_3bytes(bloques, sk)))
 
         elif inp == 3:
-            sk, admkey = leer_datos_uso_3()
-            bloques = [admkey[:16], admkey[16:]]
-            print("CADMKEY: " + calcula_bloques_cifrados(bloques, sk))
+            sk, datos = leer_datos_uso_3()
+            bloq_size = 16 # 2 elements per byte, 8 bytes
+            bloques = split_hex(datos, bloq_size)
+            bloques = [verifica_padding(bloq) for bloq in bloques]
+            print("CDATOS: " + calcula_bloques_cifrados(bloques, sk))
 
         elif inp == 4:
             print("Saliendo")
