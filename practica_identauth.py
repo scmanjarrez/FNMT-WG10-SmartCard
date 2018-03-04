@@ -42,14 +42,14 @@ def calcula_ultimos_3bytes(bloques, sk):
     ultimo_bloque = HexToByte(iv) # 00..00
     sk1 = sk[:16] # sk es formato FFAA...00
     for i, bloq in enumerate(bloques):
-        print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
-        print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
+        # print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
+        # print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
         if i == len(bloques)-1:
             ultimo_bloque = calcula_3des(sk, calcula_xor(bloq, ultimo_bloque))
-            print("3Des: " + ByteToHex(ultimo_bloque))
+            # print("3Des: " + ByteToHex(ultimo_bloque))
         else:
             ultimo_bloque = calcula_des(sk1, calcula_xor(bloq, ultimo_bloque))
-            print("Des: " + ByteToHex(ultimo_bloque))
+            # print("Des: " + ByteToHex(ultimo_bloque))
     return ultimo_bloque
 
 def calcula_bloques_cifrados(bloques, sk):
@@ -58,12 +58,12 @@ def calcula_bloques_cifrados(bloques, sk):
     ultimo_bloque = HexToByte(iv) # 00..00
     bloq_cifrados = []
     for i, bloq in enumerate(bloques):
-        print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
-        print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
+        # print("Bloq_actual: " + bloq + " Ult_bloq: " + ByteToHex(ultimo_bloque))
+        # print("Xor: " + ByteToHex(calcula_xor(bloq, ultimo_bloque)))
         ultimo_bloque = calcula_3des(sk, calcula_xor(bloq, ultimo_bloque))
-        print("CB" + str(i) + ": " + ByteToHex(ultimo_bloque))
+        # print("CB" + str(i) + ": " + ByteToHex(ultimo_bloque))
         bloq_cifrados.append(ByteToHex(ultimo_bloque))
-    print("Cifrado: " + "".join(bloq_cifrados))
+    # print("Cifrado: " + "".join(bloq_cifrados))
     return "".join(bloq_cifrados)
 
 def verifica_padding(data):
@@ -81,13 +81,13 @@ def calcula_clave_sesion(mk, gr):
     mk2mk1 = mk[16:]+mk[:16]
     nt = gr[:4] # 00NT XX..CRN
     nt_data = "000000" + nt + "000000"
-    print("nt_data: " + nt_data)
+    # print("nt_data: " + nt_data)
     sk1 = calcula_3des(mk, HexToByte(nt_data))
-    print("sk1: " + ByteToHex(sk1))
+    # print("sk1: " + ByteToHex(sk1))
     sk2 = calcula_3des(mk2mk1, HexToByte(nt_data))
-    print("sk2: " + ByteToHex(sk2))
+    # print("sk2: " + ByteToHex(sk2))
     sk = ByteToHex(sk1 + sk2)
-    print("sk: " + sk)
+    # print("sk: " + sk)
     return sk
 
 
