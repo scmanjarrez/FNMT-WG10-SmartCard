@@ -19,8 +19,8 @@ def byte_to_hex(byteStr):
 
     Returns:
         The conversion of byteStr in hex string format, FF0A...
-    """
     # https://code.activestate.com/recipes/510399-byte-to-hex-and-hex-to-byte-string-conversion/
+    """
 
     return ''.join(["%02X" % ord(x) for x in byteStr])
 
@@ -109,7 +109,7 @@ def calculate_last_block(blocks, sk):
     for i, block in enumerate(blocks):
         xor = do_xor(block, last_block)
         if dbg:
-            print("Current block: {} Last Block: {}"
+            print("Current block: {} Last block: {}"
                   .format(block, byte_to_hex(last_block)))
             print("XOR: {}"
                   .format(byte_to_hex(xor)))
@@ -144,7 +144,7 @@ def calculate_cryptogram(blocks, sk):
     for i, block in enumerate(blocks):
         xor = do_xor(block, last_block)
         if dbg:
-            print("Current block: {} Last Block: {}"
+            print("Current block: {} Last block: {}"
                   .format(block, byte_to_hex(last_block)))
             print("XOR: {}"
                   .format(byte_to_hex(xor)))
@@ -371,7 +371,7 @@ def main():
             if n_blocks == 1:
                 data = check_padding(data)
                 blocks.append(data)
-                blocks.append(8 * "00")
+                blocks.append(hex_block_size * "0")
             else:
                 to_split = ins + data
                 blocks = split_hex(to_split, hex_block_size)
@@ -395,7 +395,13 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "-d":
-        global dbg
-        dbg = True
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "-d":
+            dbg = True
+        elif sys.argv[1] == "-h" or sys.argv[1] == "--help":
+            print("""Usage: python {} [-d | -h | --help]
+            -d Print debugging information
+            -h, --help Print this message"""
+                  .format(sys.argv[0]))
+            sys.exit(0)
     main()
